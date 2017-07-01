@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse as ap
 from pathlib import Path
+import shutil
 import sys
 import re
 
@@ -28,18 +29,20 @@ class MinRep(object):
     """
     Should write some documentation here...
     """
-    def __init__(self, minrep_dir, minrep_include_dir):
+    def __init__(self, minrep_dir, minrep_include_dir, overwrite = False):
         self.collected_include_files = []
         self.minrep_dir = minrep_dir
         self.minrep_include_dir = minrep_include_dir
         self.new_file = minrep_dir / Path(f).name
-        self.include_pattern = re.compile('^\s*(#include\s*"|<)(.+)("|>)')
+        self.include_pattern = re.compile('^\s*(#include\s*["<])([/.a-zA-Z0-9_]*)([">])')
         if minrep_dir.is_dir():
-            sys.exit("Dir {} already exists".format(minrep_dir))
-        else:
-            minrep_dir.mkdir()
-            path_to_inc = minrep_dir / minrep_include_dir
-            path_to_inc.mkdir()
+            if overwrite:
+                shutil.rmtree(str(minrep_dir))
+            else:
+                sys.exit("Dir {} already exists".format(minrep_dir))
+        minrep_dir.mkdir()
+        path_to_inc = minrep_dir / minrep_include_dir
+        path_to_inc.mkdir()
 
     def parse_header(self, path_to_header):
         new_dest_file = self.minrep_dir / self.minrep_include_dir / path_to_header.name
@@ -83,7 +86,7 @@ class MinRep(object):
 if __name__ == "__main__":
     parser = ap.ArgumentParser(description = "Provide a source file")
     parser.add_argument("-d", "--destination", default = "MinRep", help = "Provide destination directory")
-# parser.add_argument("-f", "--force", action = "store_false", help = "Force overwrite destination directory")
+    parser.add_argument("-f", "--force", action = "store_true", help = "Force overwrite destination directory")
     parser.add_argument("cpp_file", nargs = 1, help = "Only one file!")
     args = parser.parse_args()
 
@@ -95,5 +98,5 @@ if __name__ == "__main__":
     if not Path(f).is_file():
         sys.exit("File {} does not exist".format(f))
 
-    minrep = MinRep(minrep_dir, minrep_include_dir)
+    minrep = MinRep(minrep_dir, minrep_include_dir, args.force)
     minrep.writeFile(f)
