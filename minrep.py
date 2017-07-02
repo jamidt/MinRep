@@ -90,7 +90,7 @@ if __name__ == "__main__":
     parser.add_argument("cpp_file", nargs = 1, help = "Only one file!")
     args = parser.parse_args()
 
-    minrep_dir = Path("MinRep")
+    minrep_dir = Path(args.destination)
     minrep_include_dir = Path("include")
 
     f = args.cpp_file[0]
