@@ -2,13 +2,13 @@
 
 Takes one cpp file and extracts all depending local header files.
 
-Be advised, this is a horrible hack and far from being the "pythionic"
+Be advised, this is a horrible hack and far from being the "pythonic"
 way. Using this might cause hairloss (I can attest this) and other
 unforseen side effects.
 
 TODO and problems:
 * Works only for header files.
-* Linux master race only.
+* Linux master race only... I think. Try on Windows and tell me :)
 
 ## License
 
