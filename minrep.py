@@ -24,6 +24,15 @@ import shutil
 import sys
 import re
 
+class PatternSearch(object):
+    @staticmethod
+    def include(string):
+        include_pattern = re.compile('(\*/)?(\s*#include\s*["<])([/.a-zA-Z0-9_]*)([">])')
+        inc = include_pattern.search(string)
+        if inc:
+            return inc.group(3)
+        else:
+            return None
 
 class MinRep(object):
     """
@@ -34,54 +43,45 @@ class MinRep(object):
         self.minrep_dir = minrep_dir
         self.minrep_include_dir = minrep_include_dir
         self.new_file = minrep_dir / Path(f).name
-        self.include_pattern = re.compile('^\s*(#include\s*["<])([/.a-zA-Z0-9_]*)([">])')
+
         if minrep_dir.is_dir():
             if overwrite:
                 shutil.rmtree(str(minrep_dir))
             else:
-                sys.exit("Dir {} already exists".format(minrep_dir))
+                raise RuntimeError("Dir {} already exists".format(minrep_dir))
+
         minrep_dir.mkdir()
         path_to_inc = minrep_dir / minrep_include_dir
         path_to_inc.mkdir()
 
-    def parse_header(self, path_to_header):
-        new_dest_file = self.minrep_dir / self.minrep_include_dir / path_to_header.name
-        with open(str(path_to_header), "r") as header_file:
-            dest_file = open(str(new_dest_file), "w")
+    def _parseFile(self, path_to_file, subfolder = None):
+        if subfolder:
+            new_dest_file = self.minrep_dir / self.minrep_include_dir / path_to_file.name
+        else:
+            new_dest_file = self.minrep_dir / path_to_file.name
+        with open(str(path_to_file), "r") as header_file, open(str(new_dest_file), "w") as dest_file:
             for line in header_file.readlines():
-                include = self.include_pattern.search(line)
+                include = PatternSearch.include(line)
                 if include:
-                    header_source = path_to_header.parent / Path(include.group(2))
+                    header_source = path_to_file.parent / Path(include)
                     if header_source.is_file():
                         header_source = header_source.resolve()
                         new_header_source = \
                                 self.minrep_dir / self.minrep_include_dir / header_source.name
                         dest_file.writelines('#include "{}"\n'.format(new_header_source.name))
                         if not header_source in self.collected_include_files:
-                            self.parse_header(header_source)
+                            self.collected_include_files.append(header_source)
+                            self._parseFile(header_source, self.minrep_include_dir)
                     else:
                         dest_file.writelines(line)
                 else:
                     dest_file.writelines(line)
 
     def writeFile(self, src_file):
-        with open(f, "r") as src_file:
-            dest_file = open(str(self.new_file), "w")
-            for line in src_file.readlines():
-                include = self.include_pattern.search(line)
-                if include:
-                    header_source = Path(include.group(2))
-                    if header_source.is_file():
-                        self.collected_include_files.append(header_source.resolve())
-                        new_dir = self.minrep_include_dir / header_source.name
-                        to_file = '#include "{}"\n'.format(new_dir)
-                        dest_file.writelines(to_file)
-                    else:
-                        dest_file.writelines(line)
-                else:
-                    dest_file.writelines(line)
-        for header_file in self.collected_include_files:
-            self.parse_header(header_file)
+        if not Path(src_file).is_file():
+            raise RuntimeError("File {} does not exist".format(src_file))
+        else:
+            self._parseFile(Path(src_file))
 
 if __name__ == "__main__":
     parser = ap.ArgumentParser(description = "Provide a source file")
@@ -94,9 +94,6 @@ if __name__ == "__main__":
     minrep_include_dir = Path("include")
 
     f = args.cpp_file[0]
-
-    if not Path(f).is_file():
-        sys.exit("File {} does not exist".format(f))
 
     minrep = MinRep(minrep_dir, minrep_include_dir, args.force)
     minrep.writeFile(f)

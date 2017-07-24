@@ -6,6 +6,9 @@ Be advised, this is a horrible hack and far from being the "pythonic"
 way. Using this might cause hairloss (I can attest this) and other
 unforseen side effects.
 
+I think most... let's say many corner cases with comment blocks are
+included in the regex definitions. At least the way I code is covered.
+
 TODO and problems:
 * Works only for header files.
 * Linux master race only... I think. Try on Windows and tell me :)
